@@ -1,0 +1,52 @@
+# docker-compose.yml
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    networks:
+      - backend
+
+  user-service:
+    build: ./user-service
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/user-service
+      - PORT=4001
+      - NODE_ENV=production
+    depends_on:
+      - mongo
+    networks:
+      - backend
+
+  health-goal-service:
+    build: ./health-goal-service
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/health-goal-service
+      - PORT=4002
+      - NODE_ENV=production
+    depends_on:
+      - mongo
+    networks:
+      - backend
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "5000:5000"
+    environment:
+      - USER_BASE=http://user-service:4001
+      - HG_BASE=http://health-goal-service:4002
+      - PORT=5000
+      - NODE_ENV=production
+    depends_on:
+      - user-service
+      - health-goal-service
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
